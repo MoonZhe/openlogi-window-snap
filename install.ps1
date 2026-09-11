@@ -13,7 +13,7 @@
 #        restore, next-monitor, prev-monitor)
 #
 # What it does:
-#   1. copies every bin\snap-*.exe into %USERPROFILE%\.config\openlogi\
+#   1. copies every bin\snap-*.exe into %USERPROFILE%\.config\openlogi\bin\
 #   2. reads your device serial (selected_device) from config.toml
 #   3. backs up config.toml, replaces the chosen slots, leaves everything else untouched
 # Then relaunch OpenLogi.
@@ -26,6 +26,7 @@ $ErrorActionPreference = 'Stop'
 
 $bin       = Join-Path $PSScriptRoot 'bin'
 $configDir = Join-Path $env:USERPROFILE '.config\openlogi'
+$exeDir    = Join-Path $configDir 'bin'
 $config    = Join-Path $configDir 'config.toml'
 
 if (-not (Test-Path $config)) { Write-Error "OpenLogi config not found at $config. Install/launch OpenLogi once first." }
@@ -38,8 +39,9 @@ foreach ($k in $Slots.Keys) {
 }
 
 # 1. copy exes
-Get-ChildItem $bin -Filter 'snap-*.exe' | Copy-Item -Destination $configDir -Force
-Write-Host "Copied $((Get-ChildItem $bin -Filter 'snap-*.exe').Count) snap-*.exe files to $configDir"
+New-Item -ItemType Directory -Force $exeDir | Out-Null
+Get-ChildItem $bin -Filter 'snap-*.exe' | Copy-Item -Destination $exeDir -Force
+Write-Host "Copied $((Get-ChildItem $bin -Filter 'snap-*.exe').Count) snap-*.exe files to $exeDir"
 
 # 2. device serial
 $toml   = [IO.File]::ReadAllText($config)
@@ -77,7 +79,7 @@ label = "$label"
 icon = "$($icons[$zone])"
 
 [$base.$slot.action.OpenApplication]
-path = '$configDir\snap-$zone.exe'
+path = '$exeDir\snap-$zone.exe'
 display_name = "Snap $zone"
 "@
     Write-Host "  $slot -> $zone"

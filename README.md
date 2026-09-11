@@ -71,7 +71,7 @@ flash** — unlike `RunShellCommand`, which goes through `cmd.exe /c`.
 
 ## Manual setup
 
-1. Copy the exes you want from `bin\` into `%USERPROFILE%\.config\openlogi\`.
+1. Copy the exes you want from `bin\` into `%USERPROFILE%\.config\openlogi\bin\`.
 2. In `%USERPROFILE%\.config\openlogi\config.toml`, find your device serial
    (`selected_device = "serial:…"` near the top) and add a block per slot, replacing
    `serial:XXXX`, `<you>`, `<Slot>` and `<zone>`. If the slot already exists, **replace** its
@@ -83,7 +83,7 @@ flash** — unlike `RunShellCommand`, which goes through `cmd.exe /c`.
    icon = "ArrowLeft"
 
    [devices."serial:XXXX".action_ring.default.slots.<Slot>.action.OpenApplication]
-   path = 'C:\Users\<you>\.config\openlogi\snap-<zone>.exe'
+   path = 'C:\Users\<you>\.config\openlogi\bin\snap-<zone>.exe'
    display_name = "Snap <zone>"
    ```
 
