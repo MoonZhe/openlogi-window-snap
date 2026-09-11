@@ -10,6 +10,28 @@ third-party software.
 | `Bottom`      | Snap Middle | centered 50% (Windows' ¼ · ½ · ¼ layout)   |
 | `BottomRight` | Snap Right  | right 50%                                  |
 
+## Quick start
+
+Requires OpenLogi already installed and launched once (so `config.toml` exists), and
+`git`/`gh`. Run in PowerShell:
+
+```bash
+gh repo clone MoonZhe/openlogi-window-snap
+```
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\openlogi-window-snap\install.ps1
+```
+
+Then **relaunch OpenLogi**. That's it.
+
+`install.ps1` copies the three exes into `%USERPROFILE%\.config\openlogi\`, reads your
+mouse's serial from `config.toml`, backs the config up (`config.toml.pre-snap-<timestamp>.bak`),
+replaces whatever is in the `BottomLeft` / `Bottom` / `BottomRight` ring slots with the
+Snap actions, and leaves every other slot and setting untouched.
+
+Prefer to do it by hand? See [Manual setup](#manual-setup) below.
+
 ## How it works
 
 `snap-third.cs` is a ~7 KB windowless native exe (built with `csc.exe`, which ships with
@@ -27,7 +49,7 @@ Windows' .NET Framework 4.x). It:
 OpenLogi launches it via its `OpenApplication` action (`ShellExecuteW`), so there is
 **no console flash** — unlike `RunShellCommand`, which goes through `cmd.exe /c`.
 
-## Setup
+## Manual setup
 
 ### 1. Copy the exes
 
@@ -105,4 +127,5 @@ OpenLogi internals learned along the way are listed in [NOTES.md](NOTES.md).
 | `snap-left.exe`    | Build, snaps to left half                                  |
 | `snap-middle.exe`  | Build, snaps to centered half                              |
 | `snap-right.exe`   | Build, snaps to right half                                 |
+| `install.ps1`      | One-shot installer (see Quick start)                       |
 | `NOTES.md`         | Working notes: OpenLogi internals, dead ends, icon list    |
