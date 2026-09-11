@@ -1,4 +1,4 @@
-# install.ps1 — one-shot setup for openlogi-window-snap
+# install.ps1 -one-shot setup for openlogi-window-snap
 #
 #   gh repo clone MoonZhe/openlogi-window-snap
 #   powershell -ExecutionPolicy Bypass -File .\openlogi-window-snap\install.ps1
@@ -30,7 +30,7 @@ $exeDir    = Join-Path $configDir 'bin'
 $config    = Join-Path $configDir 'config.toml'
 
 if (-not (Test-Path $config)) { Write-Error "OpenLogi config not found at $config. Install/launch OpenLogi once first." }
-if (-not (Test-Path (Join-Path $bin 'snap-left.exe'))) { Write-Error "bin\ is empty — run .\build.ps1 first (or pull the repo's prebuilt binaries)." }
+if (-not (Test-Path (Join-Path $bin 'snap-left.exe'))) { Write-Error "bin\ is empty -run .\build.ps1 first (or pull the repo's prebuilt binaries)." }
 
 $validSlots = 'Top','TopRight','Right','BottomRight','Bottom','BottomLeft','Left','TopLeft'
 foreach ($k in $Slots.Keys) {
@@ -46,7 +46,9 @@ Write-Host "Copied $((Get-ChildItem $bin -Filter 'snap-*.exe').Count) snap-*.exe
 # 2. device serial
 $toml   = [IO.File]::ReadAllText($config)
 $serial = [regex]::Match($toml, '(?m)^selected_device\s*=\s*"([^"]+)"').Groups[1].Value
-if (-not $serial) { Write-Error "Could not find selected_device in $config" }
+# Newer schemas (v7+) have no selected_device; fall back to the first devices."..." table key.
+if (-not $serial) { $serial = [regex]::Match($toml, '(?m)^\[devices\."([^"]+)"').Groups[1].Value }
+if (-not $serial) { Write-Error "Could not find selected_device or any [devices.""..""] table in $config" }
 Write-Host "Device: $serial"
 
 # 3. rewrite chosen slots
