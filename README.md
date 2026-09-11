@@ -1,19 +1,13 @@
 # openlogi-window-snap
 
-Snap the active window to the **left half**, **centered half**, or **right half** of the
-screen from the Logitech MX Master Action Ring, using OpenLogi on Windows — with no
-third-party software.
-
-| Ring slot     | Label       | Placement                                  |
-|---------------|-------------|--------------------------------------------|
-| `BottomLeft`  | Snap Left   | left 50% of the monitor's work area        |
-| `Bottom`      | Snap Middle | centered 50% (Windows' ¼ · ½ · ¼ layout)   |
-| `BottomRight` | Snap Right  | right 50%                                  |
+Window snapping for the Logitech MX Master **Action Ring** via OpenLogi on Windows —
+halves, quarters, thirds, maximize/minimize, move-to-other-monitor — with **no third-party
+software**. Tiny native exes built with the C# compiler that ships inside Windows.
 
 ## Quick start
 
-Requires OpenLogi already installed and launched once (so `config.toml` exists), and
-`git`/`gh`. Run in PowerShell:
+Requires OpenLogi already installed and launched once (so `config.toml` exists), plus
+`git`/`gh`. In PowerShell:
 
 ```bash
 gh repo clone MoonZhe/openlogi-window-snap
@@ -23,109 +17,98 @@ gh repo clone MoonZhe/openlogi-window-snap
 powershell -ExecutionPolicy Bypass -File .\openlogi-window-snap\install.ps1
 ```
 
-Then **relaunch OpenLogi**. That's it.
+Then **relaunch OpenLogi**. That gives you the default layout:
 
-`install.ps1` copies the three exes into `%USERPROFILE%\.config\openlogi\`, reads your
-mouse's serial from `config.toml`, backs the config up (`config.toml.pre-snap-<timestamp>.bak`),
-replaces whatever is in the `BottomLeft` / `Bottom` / `BottomRight` ring slots with the
-Snap actions, and leaves every other slot and setting untouched.
+| Ring slot     | Zone     | Placement                                |
+|---------------|----------|------------------------------------------|
+| `BottomLeft`  | `left`   | left half                                |
+| `Bottom`      | `middle` | centered half (Windows' ¼ · ½ · ¼ layout)|
+| `BottomRight` | `right`  | right half                               |
 
-Prefer to do it by hand? See [Manual setup](#manual-setup) below.
+### Pick your own layout
+
+Pass a slot → zone map. Slots you don't mention are left exactly as they are:
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\openlogi-window-snap\install.ps1 -Slots @{ BottomLeft='left'; Bottom='middle'; BottomRight='right'; Top='maximize'; Left='prev-monitor'; Right='next-monitor' }
+```
+
+Slots: `Top` `TopRight` `Right` `BottomRight` `Bottom` `BottomLeft` `Left` `TopLeft`
+
+## Zones
+
+| Zone                                  | Placement (of the monitor's work area)             |
+|---------------------------------------|----------------------------------------------------|
+| `left` `right`                        | left / right half                                  |
+| `top` `bottom`                        | top / bottom half                                  |
+| `middle`                              | centered half (¼ · ½ · ¼)                          |
+| `top-left` `top-right` `bottom-left` `bottom-right` | quarters                             |
+| `left-third` `middle-third` `right-third` | thirds                                         |
+| `left-two-thirds` `right-two-thirds`  | two thirds, anchored left / right                  |
+| `center`                              | floating, ~83% × 83%, centered                     |
+| `maximize` `minimize` `restore`       | standard window states                             |
+| `next-monitor` `prev-monitor`         | move to the next/previous screen (left→right order), keeping the same relative size and position |
+
+Every zone is a separate `bin\snap-<zone>.exe` — same binary, it reads the zone from its
+own filename because OpenLogi's `OpenApplication` action passes no arguments.
+`snap.exe <zone>` also works from a shell.
 
 ## How it works
 
-`snap-third.cs` is a ~7 KB windowless native exe (built with `csc.exe`, which ships with
-Windows' .NET Framework 4.x). It:
+`snap.cs` compiles to a ~10 KB windowless exe (`csc.exe /target:winexe`, .NET Framework 4.x,
+present on every Windows 10/11). It:
 
 - finds the real foreground app window (skipping consoles, the OpenLogi overlay, tool
   windows, DWM-cloaked windows, desktop/taskbar),
-- uses the work area of **the monitor that window is on** (multi-monitor safe),
-- is **per-monitor DPI aware** (works with mixed scaling, e.g. laptop 150% + external 100%),
-- compensates for Windows 10/11 invisible resize borders so adjacent snapped windows have
-  **no gap** between them,
-- infers its zone from its **own filename** (`snap-left.exe`, `snap-middle.exe`,
-  `snap-right.exe`), because OpenLogi's `OpenApplication` action takes no arguments.
+- uses the work area of **the monitor that window is on**,
+- is **per-monitor DPI aware** (mixed scaling works, e.g. laptop 150% + external 100%),
+- compensates for Windows 10/11 invisible resize borders so adjacent zones tile with
+  **no gap** — zones are defined by shared edge fractions, so `left`+`right` or three
+  `*-third`s meet exactly.
 
-OpenLogi launches it via its `OpenApplication` action (`ShellExecuteW`), so there is
-**no console flash** — unlike `RunShellCommand`, which goes through `cmd.exe /c`.
+OpenLogi launches it via `OpenApplication` (`ShellExecuteW`), so there is **no console
+flash** — unlike `RunShellCommand`, which goes through `cmd.exe /c`.
 
 ## Manual setup
 
-### 1. Copy the exes
+1. Copy the exes you want from `bin\` into `%USERPROFILE%\.config\openlogi\`.
+2. In `%USERPROFILE%\.config\openlogi\config.toml`, find your device serial
+   (`selected_device = "serial:…"` near the top) and add a block per slot, replacing
+   `serial:XXXX`, `<you>`, `<Slot>` and `<zone>`. If the slot already exists, **replace** its
+   tables — OpenLogi rejects duplicate headers.
 
-Put `snap-left.exe`, `snap-middle.exe`, `snap-right.exe` (and optionally `snap-third.cs`)
-into your OpenLogi config folder:
+   ```toml
+   [devices."serial:XXXX".action_ring.default.slots.<Slot>]
+   label = "Snap Left"
+   icon = "ArrowLeft"
 
-```
-%USERPROFILE%\.config\openlogi\
-```
+   [devices."serial:XXXX".action_ring.default.slots.<Slot>.action.OpenApplication]
+   path = 'C:\Users\<you>\.config\openlogi\snap-<zone>.exe'
+   display_name = "Snap <zone>"
+   ```
 
-No build step needed. If you'd rather build from source yourself:
-
-```bash
-C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /target:winexe /optimize /out:snap-third.exe snap-third.cs
-```
-
-then copy `snap-third.exe` to the three `snap-<zone>.exe` names.
-
-### 2. Edit `config.toml`
-
-Open `%USERPROFILE%\.config\openlogi\config.toml`. Note two values you need:
-
-- **your username** in the path (`C:\Users\<you>\...`)
-- **your device serial** — the `selected_device` line near the top, e.g.
-  `selected_device = "serial:2545zaz672c8"`
-
-Paste the following, replacing `<you>` and `serial:XXXX`. If the slots already exist
-(e.g. set to something else in the GUI), replace those blocks rather than adding duplicates —
-OpenLogi errors on duplicate table headers.
-
-```toml
-[devices."serial:XXXX".action_ring.default.slots.BottomLeft]
-label = "Snap Left"
-icon = "ArrowLeft"
-
-[devices."serial:XXXX".action_ring.default.slots.BottomLeft.action.OpenApplication]
-path = 'C:\Users\<you>\.config\openlogi\snap-left.exe'
-display_name = "Snap left"
-
-[devices."serial:XXXX".action_ring.default.slots.Bottom]
-label = "Snap Middle"
-icon = "Layers"
-
-[devices."serial:XXXX".action_ring.default.slots.Bottom.action.OpenApplication]
-path = 'C:\Users\<you>\.config\openlogi\snap-middle.exe'
-display_name = "Snap middle"
-
-[devices."serial:XXXX".action_ring.default.slots.BottomRight]
-label = "Snap Right"
-icon = "ArrowRight"
-
-[devices."serial:XXXX".action_ring.default.slots.BottomRight.action.OpenApplication]
-path = 'C:\Users\<you>\.config\openlogi\snap-right.exe'
-display_name = "Snap right"
-```
-
-### 3. Relaunch OpenLogi
-
-OpenLogi only reads `config.toml` at startup. If it shows a "Configuration" parse error,
-it tells you the exact line — usually a duplicate slot header or a typo in the serial.
+   Valid `icon` names are listed in [NOTES.md](NOTES.md).
+3. Relaunch OpenLogi. It only reads `config.toml` at startup; a "Configuration" error names
+   the exact line.
 
 The exes are unsigned, so SmartScreen may prompt once the first time a button is pressed.
 
-## Customising the layout
+## Building from source
 
-The zone math lives in one `switch` in `snap-third.cs` (`half` / `quarter` of the work-area
-width). Change it, rebuild, and re-copy to the three names. Valid `icon` values and other
-OpenLogi internals learned along the way are listed in [NOTES.md](NOTES.md).
+```bash
+powershell -ExecutionPolicy Bypass -File .\build.ps1
+```
+
+Compiles `snap.cs` once and stamps out every `bin\snap-<zone>.exe`. To add a zone, add a
+row to the `Zones` table in `snap.cs` (edge fractions in twelfths) and to the list in
+`build.ps1`.
 
 ## Files
 
-| File               | Purpose                                                    |
-|--------------------|------------------------------------------------------------|
-| `snap-third.cs`    | Source                                                     |
-| `snap-left.exe`    | Build, snaps to left half                                  |
-| `snap-middle.exe`  | Build, snaps to centered half                              |
-| `snap-right.exe`   | Build, snaps to right half                                 |
-| `install.ps1`      | One-shot installer (see Quick start)                       |
-| `NOTES.md`         | Working notes: OpenLogi internals, dead ends, icon list    |
+| File           | Purpose                                                 |
+|----------------|---------------------------------------------------------|
+| `snap.cs`      | Source                                                  |
+| `bin\snap-*.exe` | Prebuilt binaries, one per zone                       |
+| `build.ps1`    | Compile + stamp out the per-zone exes                   |
+| `install.ps1`  | One-shot installer (copies exes, edits `config.toml`)   |
+| `NOTES.md`     | Working notes: OpenLogi internals, icon list, dead ends |

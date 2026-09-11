@@ -22,7 +22,7 @@ A tiny **windowless native exe** built with `csc.exe` (ships with Windows .NET F
 no third-party software), launched by OpenLogi's `OpenApplication` action.
 
 ### Files in `C:\Users\MoonZhe\.config\openlogi\`
-- `snap-third.cs` — source. Uses `user32.dll`: walks the Z-order from the foreground window
+- `snap.cs` (in the repo; was `snap-third.cs`) — source. Uses `user32.dll`: walks the Z-order from the foreground window
   to the first real app window (skipping consoles, the OpenLogi overlay, tool windows,
   DWM-cloaked windows, desktop/taskbar), gets the work area of **the monitor that window is
   on** (`MonitorFromWindow` + `GetMonitorInfo`), `ShowWindow(SW_RESTORE)` then `SetWindowPos`.
@@ -69,7 +69,7 @@ display_name = "Snap right"
 OpenLogi must be relaunched after editing `config.toml`.
 
 ## Replicating on another PC
-1. Copy `snap-third.cs`, `snap-left.exe`, `snap-middle.exe`, `snap-right.exe` to
+1. Copy `snap.cs` (in the repo; was `snap-third.cs`), `snap-left.exe`, `snap-middle.exe`, `snap-right.exe` to
    `%USERPROFILE%\.config\openlogi\` there (no rebuild needed; .NET Framework 4.x is on every
    Windows 10/11).
 2. Paste the slot blocks above into that PC's `config.toml`, replacing the user path and the
